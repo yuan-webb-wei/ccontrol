@@ -3,6 +3,7 @@ package sim.app.ccontrol;
 import sim.engine.*;
 import sim.field.continuous.*;
 import sim.util.*;
+import java.util.*;
 
 /* Code for single agent.  Multiple agents make up population. */
 
@@ -68,8 +69,7 @@ public class Population implements Steppable, sim.portrayal.Orientable2D {
             agent[i] = new Agent(i, this);
         }
 
-        System.out.printf(" Population created: tracker start at (%.2f, %.2f)\n",
-                loc.x, loc.y);
+        System.out.printf(" Population created: tracker start at (%.2f, %.2f)\n", loc.x, loc.y);
     }  /* Population */
 
     /* Need to include the following three to compile */
@@ -148,18 +148,24 @@ public class Population implements Steppable, sim.portrayal.Orientable2D {
         displacementEW = calcDisplacementEW(whichTarget, ccontrol);
         distance = calcDistance(displacementEW, displacementNS);
 
+        //@mylist - only update active agents
         // mutate agent thresholds based on current distance/diagonal length
-        for (i = 0; i < ccontrol.getPopSize(); i++) {
-            if (ccontrol.getMutateThresholdsOn())
-                agent[i].mutateThresholds(ccontrol, displacementNS, displacementEW);
+        for (i = 0; i < ccontrol.maxPopSize; i++) {
+            if (agent[i].active) {
+                if (ccontrol.getMutateThresholdsOn())
+                    agent[i].mutateThresholds(ccontrol, displacementNS, displacementEW);
+            }
         }  // for
 
         initPushCount();
 
-        for (i = 0; i < ccontrol.getPopSize(); i++) {
-            pushDirection = agent[i].getDecision(ccontrol);
-            pushCount[pushDirection]++;
-            System.out.printf(" t%d Pop(step): pushDirection %d\n", ccontrol.schedule.getSteps(), pushDirection);
+        //@mylist - only update active agents
+        for (i = 0; i < ccontrol.maxPopSize; i++) {
+            if (agent[i].active) {
+                pushDirection = agent[i].getDecision(ccontrol);
+                pushCount[pushDirection]++;
+                System.out.printf(" t%d Pop(step): pushDirection %d\n", ccontrol.schedule.getSteps(), pushDirection);
+            }
         }  // for
         System.out.printf(" t%d Pop(step): pushCount: ", ccontrol.schedule.getSteps());
 

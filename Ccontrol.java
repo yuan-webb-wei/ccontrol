@@ -6,6 +6,7 @@ import sim.util.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Ccontrol extends SimState {
     //   public Continuous2D trackerSpace;
@@ -93,6 +94,8 @@ public class Ccontrol extends SimState {
 
     // @mylist
     public int distributionType = 0;
+    public int sortOption = 0;
+    public ArrayList<Integer> indices_of_picked_agents;
 
     // parameters in Model pane
 
@@ -172,10 +175,24 @@ public class Ccontrol extends SimState {
     }
 
     public void setPopSize(int val) {
-        int i;
         if (val > 0 && val <= maxPopSize) popSize = val;
-        for (i = 0; i < popSize; i++) pop.agent[i].setActive(true);
-        for (i = popSize; i < maxPopSize; i++) pop.agent[i].setActive(false);
+
+        //int i;
+        //for (i = 0; i < popSize; i++) pop.agent[i].setActive(true);
+        //for (i = popSize; i < maxPopSize; i++) pop.agent[i].setActive(false);
+
+        //@mylist - select agents randomly
+        indices_of_picked_agents = new ArrayList<Integer>(this.popSize);
+        indices_of_picked_agents = getRandomIndices(this.popSize, this.maxPopSize);
+
+        for (int i = 0; i < maxPopSize; i++){
+            if (this.indices_of_picked_agents.contains(i)){
+                pop.agent[i].setActive(true);
+            }
+            else {
+                pop.agent[i].setActive(false);
+            }
+        }
     }
 
     public double getPopStartX() {
@@ -285,7 +302,20 @@ public class Ccontrol extends SimState {
     }
 
     public Object domDistributionType() {
-        return new String[]{"Gaussian Distribution", "Inverted Gaussian Distribution", "Uniform Distribution", "Random Distribution"};
+        return new String[]{ "Gaussian Distribution", "Inverted Gaussian Distribution", "Uniform Distribution", "Random Distribution" };
+    }
+
+    //@mylist - add sorting option
+    public int getSortOption() {
+        return this.sortOption;
+    }
+
+    public void setSortOption(int value) {
+        this.sortOption = value;
+    }
+
+    public Object domSortOption() {
+        return new String[]{ "Unsorted", "Sorted" };
     }
 
     // functions for parameters not in model pane
@@ -395,11 +425,11 @@ public class Ccontrol extends SimState {
         int size = getMaxPopSize();
 
         //generate Gaussian (normal), inverted Gaussian (inverted normal), and uniform Distributed threshold values for both X and Y directions
-        double[] normalXValues = getGaussianDistributedValues(size, thresholdXMean, thresholdXStandardDeviation);
-        double[] invertedNormalXValues = getInvertedGaussianDistributedValues(size, thresholdXMean, thresholdXStandardDeviation);
+        double[] normalXValues = getGaussianDistributedValues(size, thresholdX, thresholdXMean, thresholdXStandardDeviation);
+        double[] invertedNormalXValues = getInvertedGaussianDistributedValues(size, thresholdX, thresholdXMean, thresholdXStandardDeviation);
         double[] uniformXValues = getUniformDistributedValues(size, thresholdX);
-        double[] normalYValues = getGaussianDistributedValues(size, thresholdYMean, thresholdYStandardDeviation);
-        double[] invertedNormalYValues = getInvertedGaussianDistributedValues(size, thresholdYMean, thresholdYStandardDeviation);
+        double[] normalYValues = getGaussianDistributedValues(size, thresholdY, thresholdYMean, thresholdYStandardDeviation);
+        double[] invertedNormalYValues = getInvertedGaussianDistributedValues(size, thresholdY, thresholdYMean, thresholdYStandardDeviation);
         double[] uniformYValues = getUniformDistributedValues(size, thresholdY);
 
         // initialize agents in population
@@ -493,16 +523,16 @@ public class Ccontrol extends SimState {
          schedule.scheduleRepeating(drawAgentLine);
 */
 
-            DrawAgentRangeEW drawAgentRangeEW = new DrawAgentRangeEW(
-                    pop.agent[i], rangeWindowWidth, horizBorder, boxWidth);
+            DrawAgentRangeEW drawAgentRangeEW = new DrawAgentRangeEW(pop.agent[i], rangeWindowWidth, horizBorder, boxWidth);
             rangeViewEW.setObjectLocation(drawAgentRangeEW, new Double2D(0, 0));
 
-            DrawAgentRangeNS drawAgentRangeNS = new DrawAgentRangeNS(
-                    pop.agent[i], rangeWindowWidth, horizBorder, boxHeight);
+            DrawAgentRangeNS drawAgentRangeNS = new DrawAgentRangeNS(pop.agent[i], rangeWindowWidth, horizBorder, boxHeight);
             rangeViewNS.setObjectLocation(drawAgentRangeNS, new Double2D(0, 0));
+
         }
 
         setPopSize(getPopSize());
+
     }  /* initPopulation */
 
     public Double2D setStartLocation(double paramX, double paramY) {
@@ -578,46 +608,49 @@ public class Ccontrol extends SimState {
     static final long serialVersionUID = -7164072518609011190L;
 
     //@mylist - get Gaussian distributed origin values
-    public static double[] getGaussianDistributedOriginValues(int size){
+    public double[] getGaussianDistributedOriginValues(int size){
         //nextGaussian() - Returns the next pseudorandom, Gaussian ("normally") distributed double value with mean 0.0 and standard deviation 1.0 from this random number generator's sequence.
         Random randomGenerator = new Random();
         double[] normalValues_origin = new double[size];
         for (int k = 0; k < normalValues_origin.length; k++) {
             normalValues_origin[k] = randomGenerator.nextGaussian();
         }
-        Arrays.sort(normalValues_origin);
+        //Arrays.sort(normalValues_origin);
         //printToFile("./normalDistributionOrigin.out", normalValues_origin);
         return normalValues_origin;
     }
 
     //@mylist - get uniform distributed origin values
-    public static double[] getUniformDistributedOriginValues(int size){
+    public double[] getUniformDistributedOriginValues(int size){
         //nextDouble() - Returns the next pseudorandom, uniformly distributed double value between 0.0 and 1.0 from this random number generator's sequence.
         Random randomGenerator = new Random();
         double[] uniformValues_origin = new double[size];
         for (int k = 0; k < uniformValues_origin.length; k++) {
             uniformValues_origin[k] = randomGenerator.nextDouble();
         }
-        Arrays.sort(uniformValues_origin);
+        //Arrays.sort(uniformValues_origin);
         //printToFile("./uniformDistributionOrigin.out", uniformValues_origin);
         return uniformValues_origin;
     }
 
     //@mylist - get Gaussian distributed values
-    public static double[] getGaussianDistributedValues(int size, double thresholdMean, double thresholdStandardDeviation){
+    public double[] getGaussianDistributedValues(int size, double threshold, double thresholdMean, double thresholdStandardDeviation){
         double[] normalValues_origin = getGaussianDistributedOriginValues(size);
         double[] normalValues = new double[size];
         for (int k = 0; k < normalValues.length; k++) {
             normalValues[k] = normalValues_origin[k] * thresholdStandardDeviation + thresholdMean;
         }
-        Arrays.sort(normalValues);
+        normalValues = normalizeData(normalValues, 0, threshold);
+        if (this.sortOption == 1){
+            Arrays.sort(normalValues);
+        }
         //printToFile("./normalDistribution.out", normalValues);
         return normalValues;
     }
 
     //@mylist - get inverted Gaussian distributed values
-    public static double[] getInvertedGaussianDistributedValues(int size, double thresholdMean, double thresholdStandardDeviation){
-        double[] normalValues = getGaussianDistributedValues(size, thresholdMean, thresholdStandardDeviation);
+    public double[] getInvertedGaussianDistributedValues(int size, double threshold, double thresholdMean, double thresholdStandardDeviation){
+        double[] normalValues = getGaussianDistributedValues(size, threshold, thresholdMean, thresholdStandardDeviation);
         double min_negative = Arrays.stream(normalValues).min().getAsDouble();
         double max_positive = Arrays.stream(normalValues).max().getAsDouble();
         double[] invertedNormalValues = new double[size];
@@ -629,30 +662,36 @@ public class Ccontrol extends SimState {
                 invertedNormalValues[k] = min_negative - normalValues[k];
             }
         }
-        Arrays.sort(invertedNormalValues);
+        invertedNormalValues = normalizeData(invertedNormalValues, 0, threshold);
+        if (this.sortOption == 1) {
+            Arrays.sort(invertedNormalValues);
+        }
         //printToFile("./invertedNormalDistribution.out", invertedNormalValues);
         return invertedNormalValues;
     }
 
     //@mylist - get uniform distributed values
-    public static double[] getUniformDistributedValues(int size, double threshold){
+    public double[] getUniformDistributedValues(int size, double threshold){
         double[] uniformValues_origin = getUniformDistributedOriginValues(size);
         uniformValues_origin = normalizeData(uniformValues_origin, -1, 1);
         double[] uniformValues = new double[size];
         for (int k = 0; k < uniformValues.length; k++) {
             uniformValues[k] = uniformValues_origin[k] * threshold;
         }
-        Arrays.sort(uniformValues);
+        uniformValues = normalizeData(uniformValues, 0, threshold);
+        if (this.sortOption == 1) {
+            Arrays.sort(uniformValues);
+        }
         //printToFile("./uniformDistribution.out", uniformValues);
         return uniformValues;
     }
 
     //@mylist - normalize Data
-    public static double[] normalizeData(double[] data_in, double lower_bound, double upper_bound) {
+    public double[] normalizeData(double[] data_in, double lower_bound, double upper_bound) {
         //normalize given data's range into [lower_bound, upper_bound]
-        Arrays.sort(data_in);
-        double data_in_max = data_in[data_in.length - 1];
-        double data_in_min = data_in[0];
+        //Arrays.sort(data_in);
+        double data_in_max = Arrays.stream(data_in).max().getAsDouble();
+        double data_in_min = Arrays.stream(data_in).min().getAsDouble();
         double[] data_out = new double[data_in.length];
         for (int i = 0; i < data_in.length; i++) {
             data_out[i] = (upper_bound - lower_bound) * (data_in[i] - data_in_min) / (data_in_max - data_in_min) + lower_bound;
@@ -661,7 +700,7 @@ public class Ccontrol extends SimState {
     }
 
     //@mylist - print to file
-    public static void printToFile(String fileNameOut, double[] data) {
+    public void printToFile(String fileNameOut, double[] data) {
         try {
             File outputFile = new File(fileNameOut);
             PrintWriter outputWriter = new PrintWriter(outputFile);
@@ -676,6 +715,22 @@ public class Ccontrol extends SimState {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    //@mylist - get random indices
+    public ArrayList<Integer> getRandomIndices(int size, int maximum_size) {
+        ArrayList<Integer> indices = new ArrayList<Integer>();
+        Random r = new Random();
+        for (int i = 0; i < size; i++){
+            int index = r.nextInt(maximum_size);
+            if (!indices.contains(index)) {
+                indices.add(index);
+            }
+            else {
+                i--;
+            }
+        }
+        return indices;
     }
 
 }  /* class Ccontrol */
